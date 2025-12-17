@@ -7,4 +7,7 @@ pub enum StablecoinError {
 
     #[msg("insufficient collateral")]
     InsufficientCollateral,
+
+    #[msg("Requested Collateral is more than the deposited collateral")]
+    InvalidCollateralRequest,
 }

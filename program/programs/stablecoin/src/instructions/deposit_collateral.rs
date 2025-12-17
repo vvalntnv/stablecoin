@@ -1,5 +1,5 @@
 use crate::{
-    constants::{COLLAT_SEED, CONFIG_SEED, RESERVE_ACCOUNT_SEED},
+    constants::{COLLAT_SEED, CONFIG_SEED, MINT_SEED, RESERVE_ACCOUNT_SEED},
     state::{Collateral, Config},
     utils::{deposit_collateral, mint_tokens, price_utils::assert_account_is_healthy},
 };
@@ -71,7 +71,11 @@ pub struct DepositCollateralAndMintTokens<'info> {
     )]
     pub config_account: Account<'info, Config>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [MINT_SEED],
+        bump = config_account.bump_mint_account
+    )]
     pub mint_account: InterfaceAccount<'info, Mint>,
 
     #[account(

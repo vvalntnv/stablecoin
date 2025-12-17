@@ -1,5 +1,8 @@
 pub mod admin;
-pub mod deposit;
-
 pub use admin::*;
-pub use deposit::*;
+
+pub mod deposit_collateral;
+pub use deposit_collateral::*;
+
+pub mod withdraw_collateral;
+pub use withdraw_collateral::*;

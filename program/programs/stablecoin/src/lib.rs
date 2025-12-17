@@ -38,4 +38,12 @@ pub mod stablecoin {
     ) -> Result<()> {
         instructions::deposit_collateral::process(ctx, amount_to_mint, amount_deposited)
     }
+
+    pub fn withdraw_collateral_and_burn_tokens(
+        ctx: Context<WithdrawCollateral>,
+        collateral_to_withdraw: u64,
+        tokens_to_burn: u64,
+    ) -> Result<()> {
+        instructions::withdraw_collateral::process(ctx, collateral_to_withdraw, tokens_to_burn)
+    }
 }
