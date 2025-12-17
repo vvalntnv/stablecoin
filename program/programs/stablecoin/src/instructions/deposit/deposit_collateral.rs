@@ -1,7 +1,7 @@
 use crate::{
     constants::{COLLAT_SEED, CONFIG_SEED, RESERVE_ACCOUNT_SEED},
     state::{Collateral, Config},
-    utils::{deposit_collateral, mint_tokens},
+    utils::{deposit_collateral, mint_tokens, price_utils::assert_account_is_healthy},
 };
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -24,6 +24,7 @@ pub fn process(
     let token_account = &ctx.accounts.token_account;
     let reserve_account = &ctx.accounts.reserve_account;
     let config_account = &ctx.accounts.config_account;
+    let oracle = &ctx.accounts.oracle;
 
     if !collateral.is_initialized {
         collateral.reserve_account = ctx.accounts.reserve_account.key();
@@ -43,6 +44,8 @@ pub fn process(
     // amount_deposited * price_by_the_oracle
     // and the result of that is the value (in dollars perhaps) that we need to mint. If our token
     // is 1:1 with the USD, we will need to mint excatly the result
+
+    assert_account_is_healthy(oracle, collateral, config_account)?;
 
     deposit_collateral(amount_deposited, depositor, reserve_account, system_program)?;
 
