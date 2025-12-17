@@ -1,6 +1,7 @@
 mod constants;
 mod instructions;
 mod state;
+mod utils;
 
 use anchor_lang::prelude::*;
 use instructions::*;
@@ -27,5 +28,13 @@ pub mod stablecoin {
             liquidity_threshold,
             liquidity_bonus,
         )
+    }
+
+    pub fn deposit_collateral_and_mint_tokens(
+        ctx: Context<DepositCollateralAndMintTokens>,
+        amount_to_mint: u64,
+        amount_deposited: u64,
+    ) -> Result<()> {
+        instructions::deposit_collateral::process(ctx, amount_to_mint, amount_deposited)
     }
 }

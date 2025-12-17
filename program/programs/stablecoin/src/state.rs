@@ -13,8 +13,8 @@ use anchor_lang::prelude::*;
 pub struct Collateral {
     pub depositor: Pubkey,
     pub token_account: Pubkey, // the place where our stablecoin will be staked
-    pub reserve_account: Pubkey,
-    pub reserve_amount: u64,
+    pub reserve_account: Pubkey, // the place where the collateral is kept?
+    pub reserve_amount: u64,   // Hom much we keep
     pub tokens_minted: u64,
     pub bump: u8,
     pub reserve_account_bump: u8,
