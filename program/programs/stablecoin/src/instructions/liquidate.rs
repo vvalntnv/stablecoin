@@ -10,27 +10,55 @@ use crate::{
     constants::{COLLAT_SEED, CONFIG_SEED, MINT_SEED, RESERVE_ACCOUNT_SEED},
     errors::StablecoinError,
     state::{Collateral, Config},
-    utils::assert_account_is_healthy,
+    utils::{assert_account_is_healthy, liquidate_collateral},
 };
-pub fn liquidate_account(ctx: Context<LiquidateCollateral>, amount_to_burn: u64) -> Result<()> {
+pub fn process(ctx: Context<LiquidateCollateral>) -> Result<()> {
+    let liq_token_account = &ctx.accounts.token_account;
+    let collateral_account = &mut ctx.accounts.collateral_account;
+
+    let liquidator = &ctx.accounts.liquidator;
     let oracle = &ctx.accounts.oracle;
-    let collateral_account = &ctx.accounts.collateral_account;
     let config = &ctx.accounts.config_account;
 
-    if let Err(err) = assert_account_is_healthy(oracle, collateral_account, config) {
-        match err {
-            Error::AnchorError(e) => e,
-            Error::ProgramError(e) => todo!(),
+    let token_program = &ctx.accounts.token_program;
+    let mint = &ctx.accounts.mint;
+
+    let health_check = assert_account_is_healthy(oracle, collateral_account, config);
+
+    match health_check {
+        // 1. If the account is healthy, liquidation is illegal.
+        Ok(_) => return err!(StablecoinError::CannotLiquidateHealthyAccount),
+
+        // 2. If it's unhealthy because of insufficient collateral, proceed ().
+        Err(Error::AnchorError(e))
+            if e.error_name == StablecoinError::InsufficientCollateral.name() =>
+        {
+            liquidate_collateral(
+                liquidator,
+                liq_token_account,
+                mint,
+                collateral_account,
+                token_program,
+                config,
+            )
         }
-    } else {
-        return err!(StablecoinError::CannotLiquidateHealthyAccount);
-    }
+
+        // 3. If it's any other error, propagate that error.
+        Err(e) => Err(e),
+    }?;
+
+    Ok(())
 }
 
 #[derive(Accounts)]
 pub struct LiquidateCollateral<'info> {
-    #[account(mut)]
-    pub depositor: Signer<'info>,
+    pub depositor: SystemAccount<'info>,
+
+    #[account(
+        mut,
+        constraint = liquidator.key() != depositor.key()
+    )]
+    pub liquidator: Signer<'info>,
 
     #[account(
         seeds = [CONFIG_SEED],
@@ -47,11 +75,9 @@ pub struct LiquidateCollateral<'info> {
     pub mint: InterfaceAccount<'info, Mint>,
 
     #[account(
-        init_if_needed,
-        space = Collateral::INIT_SPACE,
-        payer = depositor,
+        mut,
         seeds = [COLLAT_SEED, depositor.key().as_ref()],
-        bump,
+        bump = collateral_account.bump,
         has_one = depositor,
         has_one = token_account,
         has_one = reserve_account
@@ -59,11 +85,10 @@ pub struct LiquidateCollateral<'info> {
     pub collateral_account: Account<'info, Collateral>,
 
     #[account(
-        init_if_needed,
-        payer = depositor,
+        mut,
         associated_token::mint = mint,
-        associated_token::authority = depositor,
-        associated_token::token_program = token_program
+        associated_token::authority = liquidator,
+        associated_token::token_program = token_program,
     )]
     pub token_account: InterfaceAccount<'info, TokenAccount>,
 

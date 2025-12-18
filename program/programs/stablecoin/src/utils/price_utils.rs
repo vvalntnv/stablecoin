@@ -20,8 +20,9 @@ pub fn assert_account_is_healthy<'info>(
 
     let tokens_total = collateral.tokens_minted;
 
-    if collateral_price <= 0 {
-        return err!(StablecoinError::InsufficientCollateral);
+    // account is healthy
+    if collateral_price >= 0 && tokens_total == 0 {
+        return Ok(());
     }
 
     let liquidation_ratio = tokens_total

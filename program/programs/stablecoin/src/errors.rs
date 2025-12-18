@@ -16,4 +16,7 @@ pub enum StablecoinError {
 
     #[msg("You cannot liquidate a healthy account!")]
     CannotLiquidateHealthyAccount,
+
+    #[msg("The liquidator is irreleavant, not enough tokens to buy collateral")]
+    LiquidatorIsIrrelevant,
 }

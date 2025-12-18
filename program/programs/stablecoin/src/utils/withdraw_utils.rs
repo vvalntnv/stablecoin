@@ -37,7 +37,7 @@ pub fn withdraw_collateral<'info>(
 
 pub fn burn_tokens<'info>(
     mint: &InterfaceAccount<'info, Mint>,
-    depositor: &Signer<'info>,
+    burn_authority: &Signer<'info>,
     tokens_to_burn: u64,
     token_account: &InterfaceAccount<'info, TokenAccount>,
     token_program: &Program<'info, Token2022>,
@@ -48,7 +48,7 @@ pub fn burn_tokens<'info>(
             Burn {
                 mint: mint.to_account_info(),
                 from: token_account.to_account_info(),
-                authority: depositor.to_account_info(),
+                authority: burn_authority.to_account_info(),
             },
         ),
         tokens_to_burn,

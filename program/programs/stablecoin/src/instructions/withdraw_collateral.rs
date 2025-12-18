@@ -39,12 +39,14 @@ pub fn process(
     collateral_account.reserve_amount = collateral_account
         .reserve_amount
         .checked_sub(collateral_to_withdraw)
-        .unwrap();
+        .ok_or(StablecoinError::MathOverflow)?;
 
     collateral_account.tokens_minted = collateral_account
         .tokens_minted
         .checked_sub(tokens_to_burn)
-        .unwrap();
+        .ok_or(StablecoinError::MathOverflow)?;
+
+    assert_account_is_healthy(oracle, collateral_account, config)?;
 
     withdraw_collateral(
         collateral_to_withdraw,
@@ -61,8 +63,6 @@ pub fn process(
         token_account,
         token_program,
     )?;
-
-    assert_account_is_healthy(oracle, collateral_account, config)?;
 
     Ok(())
 }
@@ -100,7 +100,7 @@ pub struct WithdrawCollateral<'info> {
         mut,
         associated_token::mint = mint,
         associated_token::authority = depositor,
-        associated_token::token_program = token_program
+        associated_token::token_program = token_program,
     )]
     pub token_account: InterfaceAccount<'info, TokenAccount>,
 

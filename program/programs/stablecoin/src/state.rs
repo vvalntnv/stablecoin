@@ -30,6 +30,7 @@ pub struct Config {
     pub liquidation_threshold: u8,
     /// Again in percentage, how much should be payed to the liquidator
     pub liquidation_bonus: u8,
+    pub protocol_liquidation_fee: u8,
     pub min_health_factor: u8,
     pub bump: u8,
     pub bump_mint_account: u8,

@@ -1,6 +1,7 @@
 use crate::{
     constants::{
-        CONFIG_SEED, LIQUIDATION_BONUS, LIQUIDATION_THRESHOLD, MINT_SEED, MIN_HEALTH_FACTOR,
+        CONFIG_SEED, LIQUIDATION_BONUS, LIQUIDATION_FEE, LIQUIDATION_THRESHOLD, MINT_SEED,
+        MIN_HEALTH_FACTOR,
     },
     state::Config,
 };
@@ -12,6 +13,7 @@ pub fn process(ctx: Context<InitializeConfigAccount>) -> Result<()> {
         auth: ctx.accounts.authority.key(),
         mint: ctx.accounts.mint_account.key(),
         liquidation_threshold: LIQUIDATION_THRESHOLD,
+        protocol_liquidation_fee: LIQUIDATION_FEE,
         liquidation_bonus: LIQUIDATION_BONUS,
         min_health_factor: MIN_HEALTH_FACTOR,
         bump: ctx.bumps.config_account,
