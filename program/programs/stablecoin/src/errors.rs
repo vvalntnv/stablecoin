@@ -13,4 +13,7 @@ pub enum StablecoinError {
 
     #[msg("The math operation resulted in overflow")]
     MathOverflow,
+
+    #[msg("You cannot liquidate a healthy account!")]
+    CannotLiquidateHealthyAccount,
 }
