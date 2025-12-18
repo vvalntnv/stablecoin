@@ -20,7 +20,7 @@ pub fn process(
     let collateral = &mut ctx.accounts.collateral_account;
     let token_program = &ctx.accounts.token_program;
     let system_program = &ctx.accounts.system_program;
-    let mint = &ctx.accounts.mint_account;
+    let mint = &ctx.accounts.mint;
     let token_account = &ctx.accounts.token_account;
     let reserve_account = &ctx.accounts.reserve_account;
     let config_account = &ctx.accounts.config_account;
@@ -37,13 +37,8 @@ pub fn process(
         collateral.is_initialized = true;
     }
 
-    collateral.reserve_amount += amount_deposited;
-
-    // here we will take the price from the oracle
-    // we will get what is amount - (amount * (liq_thresh / 100)), where amount is
-    // amount_deposited * price_by_the_oracle
-    // and the result of that is the value (in dollars perhaps) that we need to mint. If our token
-    // is 1:1 with the USD, we will need to mint excatly the result
+    collateral.reserve_amount = reserve_account.lamports() + amount_deposited;
+    collateral.tokens_minted = token_account.amount + amount_to_mint;
 
     assert_account_is_healthy(oracle, collateral, config_account)?;
 
@@ -68,6 +63,7 @@ pub struct DepositCollateralAndMintTokens<'info> {
     #[account(
         seeds = [CONFIG_SEED],
         bump,
+        has_one = mint
     )]
     pub config_account: Account<'info, Config>,
 
@@ -76,21 +72,24 @@ pub struct DepositCollateralAndMintTokens<'info> {
         seeds = [MINT_SEED],
         bump = config_account.bump_mint_account
     )]
-    pub mint_account: InterfaceAccount<'info, Mint>,
+    pub mint: InterfaceAccount<'info, Mint>,
 
     #[account(
         init_if_needed,
         space = Collateral::INIT_SPACE,
         payer = depositor,
         seeds = [COLLAT_SEED, depositor.key().as_ref()],
-        bump
+        bump,
+        has_one = depositor,
+        has_one = token_account,
+        has_one = reserve_account
     )]
     pub collateral_account: Account<'info, Collateral>,
 
     #[account(
         init_if_needed,
         payer = depositor,
-        associated_token::mint = mint_account,
+        associated_token::mint = mint,
         associated_token::authority = depositor,
         associated_token::token_program = token_program
     )]

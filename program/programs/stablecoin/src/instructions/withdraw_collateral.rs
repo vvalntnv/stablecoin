@@ -19,13 +19,13 @@ pub fn process(
 ) -> Result<()> {
     let oracle = &ctx.accounts.oracle;
     let config = &ctx.accounts.config_account;
-    let collateral_account = &ctx.accounts.collateral_account;
+    let collateral_account = &mut ctx.accounts.collateral_account;
 
     let depositor = &ctx.accounts.depositor;
     let token_account = &ctx.accounts.token_account;
 
     let reserve_account = &ctx.accounts.reserve_account;
-    let reserve_account_bump = ctx.accounts.collateral_account.reserve_account_bump;
+    let reserve_account_bump = collateral_account.reserve_account_bump;
 
     let mint_account = &ctx.accounts.mint;
 
@@ -35,6 +35,9 @@ pub fn process(
     if collateral_account.reserve_amount < collateral_to_withdraw {
         return err!(StablecoinError::InvalidCollateralRequest);
     }
+
+    collateral_account.reserve_amount = reserve_account.lamports() - collateral_to_withdraw;
+    collateral_account.tokens_minted = token_account.amount - tokens_to_burn;
 
     withdraw_collateral(
         collateral_to_withdraw,
@@ -65,7 +68,10 @@ pub struct WithdrawCollateral<'info> {
     #[account(
         mut,
         seeds = [COLLAT_SEED, depositor.key().as_ref()],
-        bump = collateral_account.bump
+        bump = collateral_account.bump,
+        has_one = depositor,
+        has_one = token_account,
+        has_one = reserve_account
     )]
     pub collateral_account: Account<'info, Collateral>,
 
