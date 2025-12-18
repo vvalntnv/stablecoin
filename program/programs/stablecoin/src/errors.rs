@@ -10,4 +10,7 @@ pub enum StablecoinError {
 
     #[msg("Requested Collateral is more than the deposited collateral")]
     InvalidCollateralRequest,
+
+    #[msg("The math operation resulted in overflow")]
+    MathOverflow,
 }

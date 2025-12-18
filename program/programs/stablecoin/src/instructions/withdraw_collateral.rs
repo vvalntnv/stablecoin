@@ -36,8 +36,15 @@ pub fn process(
         return err!(StablecoinError::InvalidCollateralRequest);
     }
 
-    collateral_account.reserve_amount = reserve_account.lamports() - collateral_to_withdraw;
-    collateral_account.tokens_minted = token_account.amount - tokens_to_burn;
+    collateral_account.reserve_amount = collateral_account
+        .reserve_amount
+        .checked_sub(collateral_to_withdraw)
+        .unwrap();
+
+    collateral_account.tokens_minted = collateral_account
+        .tokens_minted
+        .checked_sub(tokens_to_burn)
+        .unwrap();
 
     withdraw_collateral(
         collateral_to_withdraw,

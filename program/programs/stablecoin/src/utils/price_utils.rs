@@ -24,7 +24,11 @@ pub fn assert_account_is_healthy<'info>(
         return err!(StablecoinError::InsufficientCollateral);
     }
 
-    let liquidation_ratio = tokens_total * 100 / collateral_price;
+    let liquidation_ratio = tokens_total
+        .checked_mul(100) // multiply by a 100 to get the percentage in integer format
+        .ok_or(StablecoinError::MathOverflow)?
+        .checked_div(collateral_price)
+        .ok_or(StablecoinError::MathOverflow)?;
 
     if liquidation_ratio > threshold {
         return err!(StablecoinError::InsufficientCollateral);
@@ -57,12 +61,20 @@ pub fn get_collateral_price_in_usd_using<'info>(
     // where e is the exponent that the oracle gave us!
     let exponent = price_data.exponent.abs() as u32;
 
-    let nominator = collateral.reserve_amount as u128 * price_data.price as u128;
-    let denominator = LAMPORTS_PER_SOL as u128 * 10u128.pow(exponent);
-    let collateral_price = nominator / denominator;
+    let nominator = (collateral.reserve_amount as u128)
+        .checked_mul(price_data.price as u128)
+        .ok_or(StablecoinError::MathOverflow)?;
+
+    let denominator = (LAMPORTS_PER_SOL as u128)
+        .checked_mul(10u128.pow(exponent))
+        .ok_or(StablecoinError::MathOverflow)?;
+
+    let collateral_price = nominator
+        .checked_div(denominator)
+        .ok_or(StablecoinError::MathOverflow)?;
 
     if collateral_price > u64::MAX as u128 {
-        panic!("Ebi mu maikata");
+        return err!(StablecoinError::MathOverflow);
     }
 
     Ok(collateral_price as u64)

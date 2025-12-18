@@ -12,7 +12,13 @@ pub fn withdraw_collateral<'info>(
     reserve_account_bump: u8,
     system_program: &Program<'info, System>,
 ) -> Result<()> {
-    let signer_seeds: &[&[&[u8]]] = &[&[RESERVE_ACCOUNT_SEED, &[reserve_account_bump]]];
+    let depositor_key = depositor.key();
+
+    let signer_seeds: &[&[&[u8]]] = &[&[
+        RESERVE_ACCOUNT_SEED,
+        depositor_key.as_ref(),
+        &[reserve_account_bump],
+    ]];
 
     transfer(
         CpiContext::new_with_signer(

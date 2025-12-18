@@ -17,7 +17,7 @@ pub fn process(
     amount_deposited: u64,
 ) -> Result<()> {
     let depositor = &ctx.accounts.depositor;
-    let collateral = &mut ctx.accounts.collateral_account;
+    let collateral_account = &mut ctx.accounts.collateral_account;
     let token_program = &ctx.accounts.token_program;
     let system_program = &ctx.accounts.system_program;
     let mint = &ctx.accounts.mint;
@@ -26,21 +26,28 @@ pub fn process(
     let config_account = &ctx.accounts.config_account;
     let oracle = &ctx.accounts.oracle;
 
-    if !collateral.is_initialized {
-        collateral.reserve_account = ctx.accounts.reserve_account.key();
-        collateral.token_account = ctx.accounts.token_account.key();
-        collateral.bump = ctx.bumps.collateral_account;
-        collateral.reserve_account_bump = ctx.bumps.reserve_account;
+    if !collateral_account.is_initialized {
+        collateral_account.reserve_account = ctx.accounts.reserve_account.key();
+        collateral_account.token_account = ctx.accounts.token_account.key();
+        collateral_account.bump = ctx.bumps.collateral_account;
+        collateral_account.reserve_account_bump = ctx.bumps.reserve_account;
 
-        collateral.reserve_amount = 0;
+        collateral_account.reserve_amount = 0;
 
-        collateral.is_initialized = true;
+        collateral_account.is_initialized = true;
     }
 
-    collateral.reserve_amount = reserve_account.lamports() + amount_deposited;
-    collateral.tokens_minted = token_account.amount + amount_to_mint;
+    collateral_account.reserve_amount = collateral_account
+        .reserve_amount
+        .checked_add(amount_deposited)
+        .unwrap();
 
-    assert_account_is_healthy(oracle, collateral, config_account)?;
+    collateral_account.tokens_minted = collateral_account
+        .tokens_minted
+        .checked_add(amount_to_mint)
+        .unwrap();
+
+    assert_account_is_healthy(oracle, collateral_account, config_account)?;
 
     deposit_collateral(amount_deposited, depositor, reserve_account, system_program)?;
 
