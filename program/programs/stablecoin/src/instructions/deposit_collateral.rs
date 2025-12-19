@@ -6,7 +6,7 @@ use crate::{
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token_2022::{approve, Approve, Token2022},
+    token_2022::Token2022,
     token_interface::{Mint, TokenAccount},
 };
 use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;

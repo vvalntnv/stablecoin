@@ -12,15 +12,17 @@ use crate::{
     state::{Collateral, Config},
     utils::{assert_account_is_healthy, liquidate_collateral},
 };
-pub fn process(ctx: Context<LiquidateCollateral>) -> Result<()> {
+pub fn process(ctx: Context<LiquidateCollateral>, tokens_to_liquidate: u64) -> Result<()> {
     let liq_token_account = &ctx.accounts.token_account;
     let collateral_account = &mut ctx.accounts.collateral_account;
+    let reserve_account = &ctx.accounts.reserve_account;
 
     let liquidator = &ctx.accounts.liquidator;
     let oracle = &ctx.accounts.oracle;
     let config = &ctx.accounts.config_account;
 
     let token_program = &ctx.accounts.token_program;
+    let system_program = &ctx.accounts.system_program;
     let mint = &ctx.accounts.mint;
 
     let health_check = assert_account_is_healthy(oracle, collateral_account, config);
@@ -34,12 +36,16 @@ pub fn process(ctx: Context<LiquidateCollateral>) -> Result<()> {
             if e.error_name == StablecoinError::InsufficientCollateral.name() =>
         {
             liquidate_collateral(
+                collateral_account,
+                reserve_account,
                 liquidator,
                 liq_token_account,
-                mint,
-                collateral_account,
-                token_program,
+                oracle,
                 config,
+                token_program,
+                system_program,
+                mint,
+                tokens_to_liquidate,
             )
         }
 

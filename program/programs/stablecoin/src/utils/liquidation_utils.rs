@@ -6,56 +6,71 @@ use anchor_spl::{
     token_2022::Token2022,
     token_interface::{Mint, TokenAccount},
 };
+use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 
 use crate::{
+    constants::RESERVE_ACCOUNT_SEED,
+    errors::StablecoinError,
     state::{Collateral, Config},
-    utils::burn_tokens,
+    utils::{burn_tokens, get_reserve_value_in_usd},
 };
 
 pub fn liquidate_collateral<'info>(
-    liquidator: &Signer<'info>,
-    depositor: &SystemAccount<'info>,
-    token_account: &InterfaceAccount<'info, TokenAccount>,
-    mint: &InterfaceAccount<'info, Mint>,
+    collateral: &Account<'info, Collateral>,
     reserve_account: &SystemAccount<'info>,
+    liquidator: &Signer<'info>,
+    liquidator_token_account: &InterfaceAccount<'info, TokenAccount>,
+    oracle: &Account<'info, PriceUpdateV2>,
+    config: &Account<'info, Config>,
     token_program: &Program<'info, Token2022>,
     system_program: &Program<'info, System>,
-    config: &Account<'info, Config>,
+    mint: &InterfaceAccount<'info, Mint>,
+    tokens_to_burn: u64,
 ) -> Result<()> {
-    let burn_amount = token_account.amount;
+    // what needs to happen here
+    // A liquidator comes and wants to liquidate some of the tokens
+    // he gives some amount of our tokens to us and in return we give him the collateral
+    // that corresponds to that amount of tokens + a bonus for liquidating
 
-    burn_tokens(mint, liquidator, burn_amount, token_account, token_program)?;
+    let total_collateral = collateral.reserve_amount;
+    let collateral_total_worth = get_reserve_value_in_usd(oracle, total_collateral)?;
 
-    let liquidation_bonus = burn_amount * config.liquidation_bonus as u64 / 100;
-    let liquidation_lamports = burn_amount + liquidation_bonus;
+    // could be zero if amount is too small
+    let liquidation_bonus = tokens_to_burn
+        .checked_mul(config.liquidation_bonus as u64)
+        .ok_or(StablecoinError::MathOverflow)?
+        .checked_div(100)
+        .ok_or(StablecoinError::MathOverflow)?;
+
+    let burn_worth = tokens_to_burn + liquidation_bonus;
+
+    let collateral_to_release = total_collateral
+        .checked_mul(burn_worth)
+        .ok_or(StablecoinError::MathOverflow)?
+        .checked_div(collateral_total_worth)
+        .ok_or(StablecoinError::MathOverflow)?;
+
+    burn_tokens(
+        mint,
+        liquidator,
+        tokens_to_burn,
+        liquidator_token_account,
+        token_program,
+    )?;
+
+    let signer_seeds: &[&[&[u8]]] = &[&[RESERVE_ACCOUNT_SEED, collateral.depositor.as_ref()]];
 
     transfer(
-        CpiContext::new(
+        CpiContext::new_with_signer(
             system_program.to_account_info(),
             Transfer {
                 from: reserve_account.to_account_info(),
                 to: liquidator.to_account_info(),
             },
+            signer_seeds,
         ),
-        liquidation_lamports,
+        collateral_to_release,
     )?;
 
-    // TODO: Remove depositor from the reserve and use the reserve as a global reserve, not per
-    // user? | Otherwise, just transfer the reserve amount to a wallet account, where the protocol
-    // can benefit from liquidation
-    let leftover = config.protocol_liquidation_fee as u64 * reserve_account.lamports() / 100;
-
-    transfer(
-        CpiContext::new(
-            system_program.to_account_info(),
-            Transfer {
-                from: reserve_account.to_account_info(),
-                to: depositor.to_account_info(),
-            },
-        ),
-        leftover,
-    )?;
-
-    // this should happen at the end of the operation
     Ok(())
 }

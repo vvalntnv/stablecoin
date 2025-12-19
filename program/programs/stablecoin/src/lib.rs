@@ -47,7 +47,10 @@ pub mod stablecoin {
         instructions::withdraw_collateral::process(ctx, collateral_to_withdraw, tokens_to_burn)
     }
 
-    pub fn liquidate_account(ctx: Context<LiquidateCollateral>) -> Result<()> {
-        instructions::liquidate::process(ctx)
+    pub fn liquidate_account(
+        ctx: Context<LiquidateCollateral>,
+        tokens_to_liquidate: u64,
+    ) -> Result<()> {
+        instructions::liquidate::process(ctx, tokens_to_liquidate)
     }
 }
