@@ -1,0 +1,1 @@
+cd program && yarn test

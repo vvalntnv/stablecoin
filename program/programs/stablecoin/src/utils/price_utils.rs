@@ -101,6 +101,7 @@ pub fn get_reserve_value_in_usd<'info>(
                                                             // not the other way around
 
     let nano_dollar = price_data.price as u128 * 10u128.pow(adjusted_exponent);
+    // NOTE: Maybe staying in nano-dollars is worth it?
     let reserve_price_in_usd = nano_dollar
         .checked_mul(amount as u128)
         .ok_or(StablecoinError::MathOverflow)?

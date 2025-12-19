@@ -19,4 +19,9 @@ pub enum StablecoinError {
 
     #[msg("The liquidator is irreleavant, not enough tokens to buy collateral")]
     LiquidatorIsIrrelevant,
+
+    #[msg(
+        "The price update was to old for the program to decide if liquidaiton should take place"
+    )]
+    StaleError,
 }
