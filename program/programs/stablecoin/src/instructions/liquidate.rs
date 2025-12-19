@@ -10,7 +10,7 @@ use crate::{
     constants::{COLLAT_SEED, CONFIG_SEED, MINT_SEED, RESERVE_ACCOUNT_SEED},
     errors::StablecoinError,
     state::{Collateral, Config},
-    utils::{assert_account_is_healthy, liquidate_collateral},
+    utils::{assert_account_is_healthy, liquidate_collateral, LiquidationData},
 };
 pub fn process(ctx: Context<LiquidateCollateral>, tokens_to_liquidate: u64) -> Result<()> {
     let liq_token_account = &ctx.accounts.token_account;
@@ -36,15 +36,17 @@ pub fn process(ctx: Context<LiquidateCollateral>, tokens_to_liquidate: u64) -> R
             if e.error_name == StablecoinError::InsufficientCollateral.name() =>
         {
             liquidate_collateral(
-                collateral_account,
-                reserve_account,
-                liquidator,
-                liq_token_account,
-                oracle,
-                config,
-                token_program,
-                system_program,
-                mint,
+                LiquidationData {
+                    collateral: collateral_account,
+                    reserve_account,
+                    liquidator,
+                    liquidator_token_account: liq_token_account,
+                    oracle,
+                    config,
+                    token_program,
+                    system_program,
+                    mint,
+                },
                 tokens_to_liquidate,
             )
         }
